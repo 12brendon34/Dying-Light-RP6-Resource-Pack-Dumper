@@ -1,0 +1,69 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: .rpack
+//   Authors: Brendon
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 52 50 39 4C, RP6L (LittleEndian)
+//   History: 
+//------------------------------------------------
+
+LittleEndian();
+
+struct {
+	char m_Magic[4];
+	uint m_Version;
+	uint m_Flags;
+	uint m_PhysResCount;
+	uint m_PhysResTypeCount;
+	uint m_ResourceNamesCount;
+	uint m_ResourceNamesBlockSize;
+	uint m_LogResCount;
+	uint m_SectorAlignment;
+} m_MainHeader;
+
+//ResourceTypeHeader
+struct {
+	uint m_Bitfields;
+	uint m_DataFileOffset;
+	uint m_DataByteSize;
+	uint m_CompressedByteSize;
+	uint m_ResourceCount;
+} m_DefinedTypes[m_MainHeader.m_PhysResTypeCount];
+
+//ResourceEntryHeader
+struct {
+	uint m_Bitfields;
+	uint m_DataOffset;
+	uint m_DataByteSize;
+
+    //not sure lol always 00000000
+    struct {
+        short m_CompressedByteSize;
+        short m_ReferencedResource;
+    } ResourceEntryHeader;
+} m_PhysEntries[m_MainHeader.m_PhysResCount];
+
+//LogicalResourceEntryHeader
+struct {
+	uint m_Bitfields;
+	uint m_FirstNameIndex;
+	uint m_FirstResource;
+} m_LogEntries[m_MainHeader.m_ResourceNamesCount];
+
+struct {
+    uint m_NamesBlockOffset;
+} m_Names[m_MainHeader.m_ResourceNamesCount];
+
+char m_NamesBuffer[m_MainHeader.m_ResourceNamesBlockSize];
+
+
+/*
+bunch of data, type shit ongod
+
+m_PackPath;
+m_DeferredTasks
+*/
