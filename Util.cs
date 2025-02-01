@@ -166,6 +166,57 @@ namespace DumpRP6
             BuilderInformation = 255
         }
 
+        public static StringBuilder FormatFX(string[] raw)
+        {
+            //remove everything before the ACK character as it's not intended
+            int ackIndex = raw[0].IndexOf('\x06');
+            if (ackIndex != -1)
+            {
+                raw[0] = raw[0].Substring(ackIndex + 1).Trim();
+            }
+
+            // Remove trailing NUL characters from the last line
+            if (raw.Length > 0)
+            {
+                raw[raw.Length - 1] = raw[raw.Length - 1].TrimEnd('\x00');
+            }
+
+            var output = new StringBuilder();
+
+            int indentLevel = 0;
+            char indentString = '\t'; // tab, matches offical
+
+            for (int i = 0; i < raw.Length; i++)
+            {
+
+                string trimmedLine = raw[i].Trim();
+
+                if (trimmedLine.EndsWith("{") || trimmedLine == "{")
+                {
+                    output.AppendLine(new string(indentString, indentLevel) + trimmedLine);
+                    indentLevel++;
+                }
+                else if (trimmedLine == "}")
+                {
+                    indentLevel--;
+                    output.AppendLine(new string(indentString, indentLevel) + trimmedLine);
+                    output.AppendLine();
+                }
+                else
+                {
+                    output.AppendLine(new string(indentString, indentLevel) + trimmedLine);
+
+                    // Add an empty line if the next line is not a brace and the current line ends with ()
+                    if (i + 1 < raw.Length && !raw[i + 1].Trim().StartsWith("{") && trimmedLine.EndsWith("()"))
+                    {
+                        output.AppendLine();
+                    }
+                }
+            }
+
+            return output;
+        }
+
         public static string ReadString(Stream stream, Encoding encoding, int size)
         {
             using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, leaveOpen: true))

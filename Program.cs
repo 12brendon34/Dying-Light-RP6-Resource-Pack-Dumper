@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.SqlServer.Server;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -125,7 +127,7 @@ namespace DumpRP6
                     }
 
                     //folder/type/file.anm2
-                    if (filetype == (int)Util.ResourceType.Animation) 
+                    if (filetype == (int)Util.ResourceType.Animation)
                     {
                         //nothing too special for anm2
                         string outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), type);
@@ -137,7 +139,7 @@ namespace DumpRP6
                             var part = fileParts[f];
                             if(f >= 1)
                             {
-                                Console.WriteLine("Don't think that's supposted to happen, MULTIPLE ANIM FILES");
+                                Console.WriteLine("Don't think that's supposted to happen, MULTIPLE FILES");
                                 Debugger.Break();
                                 outputFile = Path.Combine(outputDir, f.ToString());
                             }
@@ -147,6 +149,30 @@ namespace DumpRP6
                                 output.Write(part, 0, part.Length);
                                 output.Close();
                             }
+                        }
+                    }
+                    else if (filetype == (int)Util.ResourceType.Fx)
+                    {
+                        string outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), type);
+                        string outputFile = Path.Combine(outputDir, firstWord + ".fx");
+                        Directory.CreateDirectory(outputDir);
+
+                        for (int f = 0; f < fileParts.Count; f++)
+                        {
+                            var part = fileParts[f];
+                            if (f >= 1)
+                            {
+                                Console.WriteLine("Don't think that's supposted to happen, MULTIPLE FILES");
+                                Debugger.Break();
+                                outputFile = Path.Combine(outputDir, f.ToString());
+                            }
+
+                            string fullString = Encoding.UTF8.GetString(part);
+                            string[] lines = fullString.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+                            StringBuilder formated = Util.FormatFX(lines);
+
+                            File.WriteAllText(outputFile, formated.ToString());
                         }
                     }
                     //default if unrecognized, folder/type/name/partcount 
