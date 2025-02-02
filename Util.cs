@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
 
 namespace DumpRP6
@@ -165,7 +166,67 @@ namespace DumpRP6
             // Builder Information
             BuilderInformation = 255
         }
-
+        public enum TextureFormat : uint
+        {
+            R8G8B8 = 0,
+            B8G8R8 = 1,
+            A8R8G8B8 = 2,
+            X8R8G8B8 = 3,
+            B8G8R8X8 = 4,
+            B8G8R8A8 = 5,
+            A8B8G8R8 = 6,
+            X8B8G8R8 = 7,
+            R5G6B5 = 8,
+            X1R5G5B5 = 9,
+            A1R5G5B5 = 10,
+            A4R4G4B4 = 11,
+            X4R4G4B4 = 12,
+            A8 = 13,
+            L8 = 14,
+            A8L8 = 15,
+            A4L4 = 16,
+            DXT1 = 17,
+            DXT3 = 18,
+            DXT5 = 19,
+            V8U8 = 20,
+            L6V5U5 = 21,
+            X8L8V8U8 = 22,
+            Q8W8V8U8 = 23,
+            CxV8U8 = 24,
+            L16 = 25,
+            G16R16 = 26,
+            A16B16G16R16 = 27,
+            R16F = 28,
+            G16R16F = 29,
+            A16B16G16R16F = 30,
+            R32F = 31,
+            G32R32F = 32,
+            A32B32G32R32F = 33,
+            D16 = 34,
+            D24S8 = 35,
+            D24X8 = 36,
+            D32 = 37,
+            DF16 = 38,
+            DF24 = 39,
+            D24FS8 = 40,
+            XENON_HDR_16FF = 41,
+            XENON_HDR_16F = 42,
+            XENON_HDR_16 = 43,
+            XENON_HDR_8 = 44,
+            DXT3A = 45,
+            DXT5A = 46,
+            DXN = 47,
+            CTX1 = 48,
+            DXT3A_1111 = 49,
+            XENON_HDR_10 = 50,
+            XENON_HDR_11 = 51,
+            A2R10G10B10 = 52,
+            R11G11B10 = 53,
+            A8R8G8B8_GAMMA = 54,
+            A8R8G8B8_GAMMA_AS16 = 55,
+            A2R10G10B10_GAMMA = 56,
+            A2R10G10B10_GAMMA_AS16 = 57,
+        }
         public static StringBuilder FormatFX(string[] raw)
         {
             //remove everything before the ACK character as it's not intended
@@ -257,6 +318,32 @@ namespace DumpRP6
             {
                 return reader.ReadUInt32();
             }
+        }
+
+        public static ushort ReadValueU16(Stream stream)
+        {
+            using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, leaveOpen: true))
+            {
+                return reader.ReadUInt16();
+            }
+        }
+
+        public static byte ReadByte(Stream stream)
+        {
+            using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, leaveOpen: true))
+            {
+                return reader.ReadByte();
+            }
+        }
+
+        public static void WriteU32(FileStream stream, uint value)
+        {
+            byte[] bytes = BitConverter.GetBytes(value);
+            if (!BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+            stream.Write(bytes, 0, bytes.Length);
         }
     }
 }
