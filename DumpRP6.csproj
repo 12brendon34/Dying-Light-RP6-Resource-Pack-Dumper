@@ -33,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Ecng.Lzma, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Ecng.Lzma.1.0.62\lib\netstandard2.0\Ecng.Lzma.dll</HintPath>
+    </Reference>
     <Reference Include="Iconic.Zlib.Netstandard, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Iconic.Zlib.Netstandard.1.0.0\lib\netstandard1.3\Iconic.Zlib.Netstandard.dll</HintPath>
     </Reference>

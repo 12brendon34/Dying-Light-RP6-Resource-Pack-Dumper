@@ -10,20 +10,6 @@ namespace DumpRP6
     //https://github.com/Microsoft/DirectXTex/blob/main/DirectXTex/DDS.h
     internal class DDS
     {
-
-        public static UInt32 DDS_FOURCC = 0x00000004; //DDPF_FOURCC
-        public static UInt32 DDS_RGB = 0x00000040; //DDPF_RGB
-        public static UInt32 DDS_RGBA = 0x00000041; //DDPF_RGB|DDPF_ALPHAPIXELS
-        public static UInt32 DDS_LUMINANCE = 0x00020000; //DDPF_LUMINANCE
-        public static UInt32 DDS_LUMINANCEA = 0x00020001; //DDPF_LUMINANCE|DDPF_ALPHAPIXELS
-        public static UInt32 DDS_ALPHAPIXELS = 0x00000001; //DDPF_ALPHAPIXELS
-        public static UInt32 DDS_ALPHA = 0x00000002; //DDPF_ALPHA
-        public static UInt32 DDS_PAL8 = 0x00000020; //DDPF_PALETTEINDEXED8
-        public static UInt32 DDS_PAL8A = 0x00000021; //DDPF_PALETTEINDEXED8|DDPF_ALPHAPIXELS
-        public static UInt32 DDS_BUMPLUMINANCE = 0x00040000; //DDPF_BUMPLUMINANCE
-        public static UInt32 DDS_BUMPDUDV = 0x00080000; //DDPF_BUMPDUDV
-        public static UInt32 DDS_BUMPDUDVA = 0x00080001; //DDPF_BUMPDUDV|DDPF_ALPHAPIXELS
-
         public struct DDS_PIXELFORMAT
         {
             public UInt32 size;
@@ -53,6 +39,74 @@ namespace DumpRP6
             public UInt32 caps4;
             public UInt32 reserved2;
         };
+        internal enum PixelFormatFlags
+        {
+            FOURCC = 0x00000004, //DDPF_FOURCC
+            RGB = 0x00000040, //DDPF_RGB
+            RGBA = 0x00000041, //DDPF_RGB|DDPF_ALPHAPIXELS
+            LUMINANCE = 0x00020000, //DDPF_LUMINANCE
+            LUMINANCEA = 0x00020001, //DDPF_LUMINANCE|DDPF_ALPHAPIXELS
+            ALPHAPIXELS = 0x00000001, //DDPF_ALPHAPIXELS
+            ALPHA = 0x00000002, //DDPF_ALPHA
+            PAL8 = 0x00000020, //DDPF_PALETTEINDEXED8
+            PAL8A = 0x00000021, //DDPF_PALETTEINDEXED8|DDPF_ALPHAPIXELS
+            BUMPLUMINANCE = 0x00040000, //DDPF_BUMPLUMINANCE
+            BUMPDUDV = 0x00080000, //DDPF_BUMPDUDV
+            BUMPDUDVA = 0x00080001 //DDPF_BUMPDUDV|DDPF_ALPHAPIXELS
+    }
+        internal enum FourCCFormat
+        {
+            Dxt1 = 0x31545844,
+            Dxt3 = 0x33545844,
+            Dxt5 = 0x35545844
+        }
 
+        public static DDS_PIXELFORMAT GetPixelFormat(Util.TextureFormat textureFormat)
+        {
+            uint DDS_PIXELFORMAT_SIZE = 32;
+
+            DDS_PIXELFORMAT dDS_PIXELFORMAT = new DDS_PIXELFORMAT();
+            dDS_PIXELFORMAT.size = DDS_PIXELFORMAT_SIZE;
+            dDS_PIXELFORMAT.fourCC = 0;
+
+            switch (textureFormat)
+            {
+                case Util.TextureFormat.DXT1:
+                    dDS_PIXELFORMAT.fourCC = (uint)FourCCFormat.Dxt1;
+                    break;
+                case Util.TextureFormat.DXT3:
+                    dDS_PIXELFORMAT.fourCC = (uint)FourCCFormat.Dxt3;
+                    break;
+                case Util.TextureFormat.DXT5:
+                    dDS_PIXELFORMAT.fourCC = (uint)FourCCFormat.Dxt5;
+                    break;
+            }
+
+            switch (textureFormat)
+            {
+                case Util.TextureFormat.DXT1:
+                case Util.TextureFormat.DXT3:
+                case Util.TextureFormat.DXT5:
+                    dDS_PIXELFORMAT.flags = (int)PixelFormatFlags.FOURCC;
+                    dDS_PIXELFORMAT.RGBBitCount = 0;
+
+                    dDS_PIXELFORMAT.RBitMask = 0;
+                    dDS_PIXELFORMAT.GBitMask = 0;
+                    dDS_PIXELFORMAT.BBitMask = 0;
+                    dDS_PIXELFORMAT.ABitMask = 0;
+                    break;
+                case Util.TextureFormat.A8R8G8B8:
+                    dDS_PIXELFORMAT.flags = (int)PixelFormatFlags.RGBA;
+                    dDS_PIXELFORMAT.RGBBitCount = 32;
+
+                    dDS_PIXELFORMAT.RBitMask = 0x00ff0000;
+                    dDS_PIXELFORMAT.GBitMask = 0x0000ff00;
+                    dDS_PIXELFORMAT.BBitMask = 0x000000ff;
+                    dDS_PIXELFORMAT.ABitMask = 0xff000000;
+                    break;
+
+            }
+            return dDS_PIXELFORMAT;
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using SharpCompress.Common;
 using SharpCompress.Compressors.Deflate;
+using SharpCompress.Compressors.LZMA;
 using SharpCompress.IO;
 using SharpCompress.Writers;
 using System;
@@ -9,6 +10,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq.Expressions;
 using System.Text;
+using static DumpRP6.DDS;
+using static DumpRP6.Util;
 
 namespace DumpRP6
 {
@@ -99,12 +102,28 @@ namespace DumpRP6
                         var offset = m_DefinedTypes[i].m_DataFileOffset;
                         Console.WriteLine(offset);
 
-                        //jump to compressed section
+                        
+                        //jump to data section
                         input.Seek(offset, SeekOrigin.Begin);
-                        var zlibStream = new ZlibStream(input, SharpCompress.Compressors.CompressionMode.Decompress);
+
+                        byte[] compressionMagic = new byte[2];
+                        input.Read(compressionMagic, 0, 2);
+
+                        //jump back to compressed section
+                        input.Seek(offset, SeekOrigin.Begin);
 
                         byte[] bytes = new byte[byteSize];
-                        zlibStream.Read(bytes, 0, (int)byteSize);
+                        if (compressionMagic[0] == 120) //hex 78 or first of zlib
+                        {
+                            var zlibStream = new ZlibStream(input, SharpCompress.Compressors.CompressionMode.Decompress);
+                            zlibStream.Read(bytes, 0, (int)byteSize);
+                        }
+                        else
+                        {
+                            var decoder = new Lzma.DecoderStream(input);
+                            decoder.Initialize(Lzma.DecoderProperties.Default);
+                            decoder.Read(bytes, 0, (int)byteSize);
+                        }
 
                         DecompressedSections.Add(bytes);
                     }
@@ -175,12 +194,19 @@ namespace DumpRP6
                     {
                         //nothing too special for anm2
                         string outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), type);
-                        string outputFile = Path.Combine(outputDir, firstWord + ".anm2");
+
+                        string Extention = ".anm2";
+
                         Directory.CreateDirectory(outputDir);
 
                         for (int f = 0; f < fileParts.Count; f++)
                         {
+                            if (fileParts[0][3] == 49)
+                                Extention = ".anm1";
+
                             var part = fileParts[f];
+                            string outputFile = Path.Combine(outputDir, firstWord + Extention);
+
                             if (f >= 1)
                             {
                                 Console.WriteLine("Don't think that's supposted to happen, MULTIPLE FILES");
@@ -219,29 +245,32 @@ namespace DumpRP6
                             File.WriteAllText(outputFile, formated.ToString());
                         }
                     }
-                    else if (filetype == (int)Util.ResourceType.Texture)
+                    else if (filetype == (int)Util.ResourceType.BuilderInformation)
                     {
-
-
-                        string outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), Path.Combine(type, firstWord));
+                        string outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), type);
+                        string outputFile = Path.Combine(outputDir, firstWord + ".txt");
                         Directory.CreateDirectory(outputDir);
 
                         for (int f = 0; f < fileParts.Count; f++)
                         {
                             var part = fileParts[f];
+                            if (f >= 1)
+                            {
+                                Console.WriteLine("Don't think that's supposted to happen, MULTIPLE FILES");
+                                Debugger.Break();
+                                outputFile = Path.Combine(outputDir, firstWord + "_Part_" + f.ToString() + ".fx");
+                            }
 
-                            using (var output = File.OpenWrite(Path.Combine(outputDir, f.ToString())))
+                            using (var output = File.OpenWrite(outputFile))
                             {
                                 output.Write(part, 0, part.Length);
                                 output.Close();
                             }
                         }
-
-
-
-
-
-                        outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), type);
+                    }
+                    else if (filetype == (int)Util.ResourceType.Texture)
+                    {
+                        string outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), type);
                         string outputFile = Path.Combine(outputDir, firstWord + ".dds");
                         Directory.CreateDirectory(outputDir);
 
@@ -254,6 +283,161 @@ namespace DumpRP6
                         Console.WriteLine($"m_TextureHeader Height: {m_TextureHeader.Height}");
 
 
+                        int pixelWidth = 0;
+                        int blockCount = (m_TextureHeader.Width + 3) / 4 * ((m_TextureHeader.Height + 3) / 4);
+                        uint PitchOrLinearSize = 0;
+
+                        bool isCompressed = false;
+                        switch (m_TextureHeader.Format)
+                        {
+                            case TextureFormat.DXT1:
+                            case TextureFormat.CTX1:
+                            case TextureFormat.DXN:
+                            case TextureFormat.DXT3:
+                            case TextureFormat.DXT5:
+                            case TextureFormat.DXT3A:
+                            case TextureFormat.DXT5A:
+                            case TextureFormat.DXT3A_1111:
+                                isCompressed = true;
+                                break;
+                        }
+
+                        //PitchOrLinearSize for compressed vs uncompressed
+                        if (isCompressed)
+                        {
+                            switch (m_TextureHeader.Format)
+                            {
+                                //blockSize
+                                case TextureFormat.DXT1:
+                                case TextureFormat.CTX1:
+                                case TextureFormat.DXN:
+                                    PitchOrLinearSize = (uint)(blockCount * 8);
+                                    break;
+
+                                case TextureFormat.DXT3:
+                                case TextureFormat.DXT5:
+                                case TextureFormat.DXT3A:
+                                case TextureFormat.DXT5A:
+                                case TextureFormat.DXT3A_1111:
+                                    PitchOrLinearSize = (uint)(blockCount * 16);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            //most have a pixelwidth of 4, skips a few checks
+                            pixelWidth = 4;
+
+                            switch (m_TextureHeader.Format)
+                            {
+                                case TextureFormat.A32B32G32R32F:
+                                    pixelWidth = 16;
+                                    break;
+
+                                case TextureFormat.A16B16G16R16:
+                                case TextureFormat.A16B16G16R16F:
+                                    pixelWidth = 8;
+                                    break;
+
+                                case TextureFormat.R8G8B8:
+                                case TextureFormat.B8G8R8:
+                                    pixelWidth = 3;
+                                    break;
+
+                                case TextureFormat.R5G6B5:
+                                case TextureFormat.X1R5G5B5:
+                                case TextureFormat.A1R5G5B5:
+                                case TextureFormat.A4R4G4B4:
+                                case TextureFormat.X4R4G4B4:
+                                case TextureFormat.V8U8:
+                                case TextureFormat.L6V5U5:
+                                case TextureFormat.L16:
+                                case TextureFormat.R16F:
+                                case TextureFormat.D16:
+                                case TextureFormat.DF16:
+                                case TextureFormat.XENON_HDR_16F:
+                                case TextureFormat.XENON_HDR_16:
+                                case TextureFormat.XENON_HDR_11:
+                                    pixelWidth = 2;
+                                    break;
+
+                                case TextureFormat.A8:
+                                case TextureFormat.L8:
+                                case TextureFormat.A4L4:
+                                case TextureFormat.XENON_HDR_8:
+                                    pixelWidth = 1;
+                                    break;
+                            }
+
+                            PitchOrLinearSize = (uint)(m_TextureHeader.Width * pixelWidth);
+                        }
+
+                        uint DDS_MAGIC = 0x20534444; // "DDS "
+
+                        uint DDS_HEADER_SIZE = 124;
+                        uint DDSCAPS_TEXTURE = 0x1000;
+
+                        DDS_PIXELFORMAT dDS_PIXELFORMAT = DDS.GetPixelFormat(m_TextureHeader.Format);
+                        DDS.DDS_HEADER header = new DDS.DDS_HEADER
+                        {
+                            size = DDS_HEADER_SIZE,
+                            flags = m_TextureHeader.Flags, //DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT,
+                            height = m_TextureHeader.Height,
+                            width = m_TextureHeader.Width,
+                            pitchOrLinearSize = PitchOrLinearSize,
+                            depth = m_TextureHeader.Depth,
+                            mipMapCount = m_TextureHeader.MipMapCount,
+                            reserved1 = new uint[11],
+                            ddspf = dDS_PIXELFORMAT,
+                            caps = DDSCAPS_TEXTURE,
+                            caps2 = 0,
+                            caps3 = 0,
+                            caps4 = 0,
+                            reserved2 = 0
+                        };
+
+                        using (var output = File.OpenWrite(outputFile))
+                        {
+                            Util.WriteU32(output, DDS_MAGIC);
+
+                            // Write DDS_HEADER
+                            Util.WriteU32(output, header.size);
+                            Util.WriteU32(output, header.flags);
+                            Util.WriteU32(output, header.height);
+                            Util.WriteU32(output, header.width);
+                            Util.WriteU32(output, header.pitchOrLinearSize);
+                            Util.WriteU32(output, header.depth);
+                            Util.WriteU32(output, header.mipMapCount);
+
+                            foreach (uint value in header.reserved1)
+                            {
+                                Util.WriteU32(output, value);
+                            }
+
+                            // Write DDS_PIXELFORMAT
+                            Util.WriteU32(output, header.ddspf.size);
+                            Util.WriteU32(output, header.ddspf.flags);
+                            Util.WriteU32(output, header.ddspf.fourCC);
+                            Util.WriteU32(output, header.ddspf.RGBBitCount);
+                            Util.WriteU32(output, header.ddspf.RBitMask);
+                            Util.WriteU32(output, header.ddspf.GBitMask);
+                            Util.WriteU32(output, header.ddspf.BBitMask);
+                            Util.WriteU32(output, header.ddspf.ABitMask);
+
+                            // Write remaining header fields
+                            Util.WriteU32(output, header.caps);
+                            Util.WriteU32(output, header.caps2);
+                            Util.WriteU32(output, header.caps3);
+                            Util.WriteU32(output, header.caps4);
+                            Util.WriteU32(output, header.reserved2);
+
+                            //Write Actuall TextureData
+                            output.Write(fileParts[1], 0, fileParts[1].Length);
+
+                            //IDK how to do mipmaps yet
+                            output.Close();
+                        }
+                        /*
                         DDS.DDS_PIXELFORMAT DDSPF = new DDS.DDS_PIXELFORMAT();
                         switch (m_TextureHeader.Format)
                         {
@@ -276,15 +460,6 @@ namespace DumpRP6
                                 break;
 
                             case Util.TextureFormat.A8R8G8B8:
-
-                                DDSPF.Size = 32,
-                                DDSPF.Flags = DDS.DDS_RGBA,
-                                DDSPF.RGBBitCount = 32,
-                                DDSPF.FourCC = 0,
-                                DDSPF.RBitMask = 0x00FF0000,
-                                DDSPF.GBitMask = 0x0000FF00,
-                                DDSPF.BBitMask = 0x000000FF,
-                                DDSPF.ABitMask = 0xFF000000,
 
                                 DDSPF.flags = DDS.DDS_RGBA;
                                 DDSPF.RGBBitCount = 32;
@@ -535,82 +710,7 @@ namespace DumpRP6
                                 break;
 
                         }
-
-                        uint DDS_MAGIC = 0x20534444; // "DDS "
-                        // DDS Constants
-                        uint DDS_HEADER_SIZE = 124;
-                        uint DDS_PIXELFORMAT_SIZE = 32;
-
-                        // Pixel Format Flags
-                        uint DDPF_RGB = 0x40;
-
-                        // Caps Flags
-                        uint DDSCAPS_TEXTURE = 0x1000;
-
-                        DDSPF.size = DDS_PIXELFORMAT_SIZE;
-
-                        DDS.DDS_HEADER header = new DDS.DDS_HEADER
-                        {
-                            size = DDS_HEADER_SIZE,
-                            flags = m_TextureHeader.Flags, //DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_PITCH,
-                            height = m_TextureHeader.Height,
-                            width = m_TextureHeader.Width,
-                            //pitchOrLinearSize = m_TextureHeader., //IDK bro
-                            depth = m_TextureHeader.Depth,
-                            mipMapCount = m_TextureHeader.MipMapCount,
-                            reserved1 = new uint[11],
-                            ddspf = DDSPF,
-                            caps = DDSCAPS_TEXTURE,
-                            caps2 = 0,
-                            caps3 = 0,
-                            caps4 = 0,
-                            reserved2 = 0
-                        };
-
-                        using (var output = File.OpenWrite(outputFile))
-                        {
-                            Util.WriteU32(output, DDS_MAGIC);
-
-                            // Write DDS_HEADER
-                            Util.WriteU32(output, header.size);
-                            Util.WriteU32(output, header.flags);
-                            Util.WriteU32(output, header.height);
-                            Util.WriteU32(output, header.width);
-                            Util.WriteU32(output, header.pitchOrLinearSize);
-                            Util.WriteU32(output, header.depth);
-                            Util.WriteU32(output, header.mipMapCount);
-
-                            foreach (uint value in header.reserved1)
-                            {
-                                Util.WriteU32(output, value);
-                            }
-
-                            // Write DDS_PIXELFORMAT
-                            Util.WriteU32(output, header.ddspf.size);
-                            Util.WriteU32(output, header.ddspf.flags);
-                            Util.WriteU32(output, header.ddspf.fourCC);
-                            Util.WriteU32(output, header.ddspf.RGBBitCount);
-                            Util.WriteU32(output, header.ddspf.RBitMask);
-                            Util.WriteU32(output, header.ddspf.GBitMask);
-                            Util.WriteU32(output, header.ddspf.BBitMask);
-                            Util.WriteU32(output, header.ddspf.ABitMask);
-
-                            // Write remaining header fields
-                            Util.WriteU32(output, header.caps);
-                            Util.WriteU32(output, header.caps2);
-                            Util.WriteU32(output, header.caps3);
-                            Util.WriteU32(output, header.caps4);
-                            Util.WriteU32(output, header.reserved2);
-
-                            //Write Actuall TextureData
-                            output.Write(fileParts[1], 0, fileParts[1].Length);
-
-
-                            //IDK how to do mipmaps yet
-
-                            output.Close();
-                        }
-
+                        */
                     }
                     //default if unrecognized, folder/type/name/partcount 
                     else
