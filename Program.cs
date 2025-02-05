@@ -281,112 +281,91 @@ namespace DumpRP6
 
                         Console.WriteLine($"m_TextureHeader Width: {m_TextureHeader.Width}");
                         Console.WriteLine($"m_TextureHeader Height: {m_TextureHeader.Height}");
+                        Console.WriteLine($"m_TextureHeader Format: {m_TextureHeader.Format}");
+                        //string outputFile = Path.Combine(outputDir, firstWord + "__" + m_TextureHeader.Format + "__.dds"); debug
 
+                        //commonly used pixelWidth
+                        int pixelWidth = 4;
 
-                        int pixelWidth = 0;
-                        int blockCount = (m_TextureHeader.Width + 3) / 4 * ((m_TextureHeader.Height + 3) / 4);
-                        uint PitchOrLinearSize = 0;
-
-                        bool isCompressed = false;
+                        //get pixelwith for other formats for calc PitchOrLinearSize
                         switch (m_TextureHeader.Format)
                         {
+                            case TextureFormat.A32B32G32R32F:
+                                pixelWidth = 16;
+                                break;
+
+                            case TextureFormat.A16B16G16R16:
+                            case TextureFormat.A16B16G16R16F:
+                                pixelWidth = 8;
+                                break;
+
+                            case TextureFormat.R8G8B8:
+                            case TextureFormat.B8G8R8:
+                                pixelWidth = 3;
+                                break;
+
+                            case TextureFormat.R5G6B5:
+                            case TextureFormat.X1R5G5B5:
+                            case TextureFormat.A1R5G5B5:
+                            case TextureFormat.A4R4G4B4:
+                            case TextureFormat.X4R4G4B4:
+                            case TextureFormat.V8U8:
+                            case TextureFormat.L6V5U5:
+                            case TextureFormat.L16:
+                            case TextureFormat.R16F:
+                            case TextureFormat.D16:
+                            case TextureFormat.DF16:
+                            case TextureFormat.XENON_HDR_16F:
+                            case TextureFormat.XENON_HDR_16:
+                            case TextureFormat.XENON_HDR_11:
+                                pixelWidth = 2;
+                                break;
+
+                            case TextureFormat.A8:
+                            case TextureFormat.L8:
+                            case TextureFormat.A4L4:
+                            case TextureFormat.XENON_HDR_8:
+                                pixelWidth = 1;
+                                break;
+                        }
+                        uint PitchOrLinearSize = (uint)(m_TextureHeader.Width * pixelWidth);
+
+                        //if compressed, use linearSize 
+                        switch (m_TextureHeader.Format)
+                        {
+                            //Xbox
+                            //case TextureFormat.CTX1:
+                            //case TextureFormat.DXN:
+                            //case TextureFormat.DXT3A:
+                            //case TextureFormat.DXT3A_1111:
+                            //case TextureFormat.DXT5A:
+
+                            //Compressed Formats
                             case TextureFormat.DXT1:
-                            case TextureFormat.CTX1:
-                            case TextureFormat.DXN:
                             case TextureFormat.DXT3:
                             case TextureFormat.DXT5:
-                            case TextureFormat.DXT3A:
-                            case TextureFormat.DXT5A:
-                            case TextureFormat.DXT3A_1111:
-                                isCompressed = true;
+                                //size of main texture data section
+                                PitchOrLinearSize = (uint)fileParts[1].Length;
                                 break;
                         }
 
-                        //PitchOrLinearSize for compressed vs uncompressed
-                        if (isCompressed)
-                        {
-                            switch (m_TextureHeader.Format)
-                            {
-                                //blockSize
-                                case TextureFormat.DXT1:
-                                case TextureFormat.CTX1:
-                                case TextureFormat.DXN:
-                                    PitchOrLinearSize = (uint)(blockCount * 8);
-                                    break;
-
-                                case TextureFormat.DXT3:
-                                case TextureFormat.DXT5:
-                                case TextureFormat.DXT3A:
-                                case TextureFormat.DXT5A:
-                                case TextureFormat.DXT3A_1111:
-                                    PitchOrLinearSize = (uint)(blockCount * 16);
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            //most have a pixelwidth of 4, skips a few checks
-                            pixelWidth = 4;
-
-                            switch (m_TextureHeader.Format)
-                            {
-                                case TextureFormat.A32B32G32R32F:
-                                    pixelWidth = 16;
-                                    break;
-
-                                case TextureFormat.A16B16G16R16:
-                                case TextureFormat.A16B16G16R16F:
-                                    pixelWidth = 8;
-                                    break;
-
-                                case TextureFormat.R8G8B8:
-                                case TextureFormat.B8G8R8:
-                                    pixelWidth = 3;
-                                    break;
-
-                                case TextureFormat.R5G6B5:
-                                case TextureFormat.X1R5G5B5:
-                                case TextureFormat.A1R5G5B5:
-                                case TextureFormat.A4R4G4B4:
-                                case TextureFormat.X4R4G4B4:
-                                case TextureFormat.V8U8:
-                                case TextureFormat.L6V5U5:
-                                case TextureFormat.L16:
-                                case TextureFormat.R16F:
-                                case TextureFormat.D16:
-                                case TextureFormat.DF16:
-                                case TextureFormat.XENON_HDR_16F:
-                                case TextureFormat.XENON_HDR_16:
-                                case TextureFormat.XENON_HDR_11:
-                                    pixelWidth = 2;
-                                    break;
-
-                                case TextureFormat.A8:
-                                case TextureFormat.L8:
-                                case TextureFormat.A4L4:
-                                case TextureFormat.XENON_HDR_8:
-                                    pixelWidth = 1;
-                                    break;
-                            }
-
-                            PitchOrLinearSize = (uint)(m_TextureHeader.Width * pixelWidth);
-                        }
-
+                        //DDS Header Info
                         uint DDS_MAGIC = 0x20534444; // "DDS "
 
                         uint DDS_HEADER_SIZE = 124;
                         uint DDSCAPS_TEXTURE = 0x1000;
 
+                        //Get PixelFormat
                         DDS_PIXELFORMAT dDS_PIXELFORMAT = DDS.GetPixelFormat(m_TextureHeader.Format);
                         DDS.DDS_HEADER header = new DDS.DDS_HEADER
                         {
                             size = DDS_HEADER_SIZE,
-                            flags = m_TextureHeader.Flags, //DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT,
+                            flags = m_TextureHeader.Flags,
                             height = m_TextureHeader.Height,
                             width = m_TextureHeader.Width,
                             pitchOrLinearSize = PitchOrLinearSize,
                             depth = m_TextureHeader.Depth,
-                            mipMapCount = m_TextureHeader.MipMapCount,
+                            mipMapCount = 1, //mipMapCount = m_TextureHeader.MipMapCount, //haven't got mipmaps yet
                             reserved1 = new uint[11],
                             ddspf = dDS_PIXELFORMAT,
                             caps = DDSCAPS_TEXTURE,
@@ -394,6 +373,16 @@ namespace DumpRP6
                             caps3 = 0,
                             caps4 = 0,
                             reserved2 = 0
+                        };
+
+                        //doubt any fancy stuff ever gets used anyways
+                        DDS.DDS_HEADER_DX10 dXGI_FORMAT = new DDS.DDS_HEADER_DX10
+                        {
+                            dxgiFormat = Util.GetDXGIFormat(m_TextureHeader.Format),
+                            resourceDimension = D3D10_RESOURCE_DIMENSION.D3D10_RESOURCE_DIMENSION_TEXTURE2D,
+                            miscFlag = 0,   //also used for cubemaps aparently?
+                            arraySize = 1,  //texture array or multiple cube maps?
+                            miscFlags2 = 0  //weird advanced flags, used on compression sometimes?
                         };
 
                         using (var output = File.OpenWrite(outputFile))
@@ -424,12 +413,22 @@ namespace DumpRP6
                             Util.WriteU32(output, header.ddspf.BBitMask);
                             Util.WriteU32(output, header.ddspf.ABitMask);
 
-                            // Write remaining header fields
+                            // Write DDS Caps
                             Util.WriteU32(output, header.caps);
                             Util.WriteU32(output, header.caps2);
                             Util.WriteU32(output, header.caps3);
                             Util.WriteU32(output, header.caps4);
                             Util.WriteU32(output, header.reserved2);
+
+                            if (header.ddspf.fourCC == DDS.MakeFourCC("DX10"))
+                            {
+                                Util.WriteU32(output, (uint)dXGI_FORMAT.dxgiFormat);
+                                Util.WriteU32(output, (uint)dXGI_FORMAT.resourceDimension);
+                                Util.WriteU32(output, dXGI_FORMAT.miscFlag);
+                                Util.WriteU32(output, dXGI_FORMAT.arraySize);
+                                Util.WriteU32(output, dXGI_FORMAT.miscFlags2);
+                            }
+
 
                             //Write Actuall TextureData
                             output.Write(fileParts[1], 0, fileParts[1].Length);
@@ -437,280 +436,6 @@ namespace DumpRP6
                             //IDK how to do mipmaps yet
                             output.Close();
                         }
-                        /*
-                        DDS.DDS_PIXELFORMAT DDSPF = new DDS.DDS_PIXELFORMAT();
-                        switch (m_TextureHeader.Format)
-                        {
-                            case Util.TextureFormat.R8G8B8:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 24;
-                                DDSPF.RBitMask = 0x00FF0000;
-                                DDSPF.GBitMask = 0x0000FF00;
-                                DDSPF.BBitMask = 0x000000FF;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.B8G8R8:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 24;
-                                DDSPF.RBitMask = 0x000000FF;
-                                DDSPF.GBitMask = 0x0000FF00;
-                                DDSPF.BBitMask = 0x00FF0000;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.A8R8G8B8:
-
-                                DDSPF.flags = DDS.DDS_RGBA;
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0x00FF0000;
-                                DDSPF.GBitMask = 0x0000FF00;
-                                DDSPF.BBitMask = 0x000000FF;
-                                DDSPF.ABitMask = 0xFF000000;
-                                break;
-
-                            case Util.TextureFormat.X8R8G8B8:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0x00FF0000;
-                                DDSPF.GBitMask = 0x0000FF00;
-                                DDSPF.BBitMask = 0x000000FF;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.B8G8R8X8:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0x000000FF;
-                                DDSPF.GBitMask = 0x0000FF00;
-                                DDSPF.BBitMask = 0x00FF0000;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.B8G8R8A8:
-                                DDSPF.flags = DDS.DDS_RGBA;
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0x000000FF;
-                                DDSPF.GBitMask = 0x0000FF00;
-                                DDSPF.BBitMask = 0x00FF0000;
-                                DDSPF.ABitMask = 0xFF000000;
-                                break;
-
-                            case Util.TextureFormat.A8B8G8R8:
-                                DDSPF.flags = DDS.DDS_RGBA;
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFF000000;
-                                DDSPF.GBitMask = 0x00FF0000;
-                                DDSPF.BBitMask = 0x0000FF00;
-                                DDSPF.ABitMask = 0x000000FF;
-                                break;
-
-                            case Util.TextureFormat.X8B8G8R8:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFF000000;
-                                DDSPF.GBitMask = 0x00FF0000;
-                                DDSPF.BBitMask = 0x0000FF00;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            //fall onto next case as are same
-                            case Util.TextureFormat.L6V5U5:
-                            case Util.TextureFormat.R5G6B5:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0xF800;
-                                DDSPF.GBitMask = 0x07E0;
-                                DDSPF.BBitMask = 0x001F;
-                                DDSPF.ABitMask = 0x0000;
-                                break;
-
-                            case Util.TextureFormat.X1R5G5B5:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0x7C00;
-                                DDSPF.GBitMask = 0x03E0;
-                                DDSPF.BBitMask = 0x001F;
-                                DDSPF.ABitMask = 0x0000;
-                                break;
-
-                            case Util.TextureFormat.A1R5G5B5:
-                                DDSPF.flags = DDS.DDS_RGBA;
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0x7C00;
-                                DDSPF.GBitMask = 0x03E0;
-                                DDSPF.BBitMask = 0x001F;
-                                DDSPF.ABitMask = 0x8000;
-                                break;
-
-                            case Util.TextureFormat.A4R4G4B4:
-                                DDSPF.flags = DDS.DDS_RGBA;
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0x0F00;
-                                DDSPF.GBitMask = 0x00F0;
-                                DDSPF.BBitMask = 0x000F;
-                                DDSPF.ABitMask = 0xF000;
-                                break;
-
-                            case Util.TextureFormat.X4R4G4B4:
-                                DDSPF.flags = DDS.DDS_RGB;
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0x0F00;
-                                DDSPF.GBitMask = 0x00F0;
-                                DDSPF.BBitMask = 0x000F;
-                                DDSPF.ABitMask = 0x0000;
-                                break;
-
-                            case Util.TextureFormat.A8:
-                                DDSPF.flags = DDS.DDS_ALPHA;
-                                DDSPF.RGBBitCount = 8;
-                                DDSPF.RBitMask = 0x00000000;
-                                DDSPF.GBitMask = 0x00000000;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x000000FF;
-                                break;
-
-                            case Util.TextureFormat.L8:
-                                DDSPF.flags = DDS.DDS_LUMINANCE;
-                                DDSPF.RGBBitCount = 8;
-                                DDSPF.RBitMask = 0x000000FF;
-                                DDSPF.GBitMask = 0x00000000;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.A8L8:
-                                DDSPF.flags = DDS.DDS_LUMINANCEA;
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0x000000FF;
-                                DDSPF.GBitMask = 0x00000000;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x0000FF00;
-                                break;
-
-                            case Util.TextureFormat.A4L4:
-                                DDSPF.flags = DDS.DDS_LUMINANCEA;
-                                DDSPF.RGBBitCount = 8;
-                                DDSPF.RBitMask = 0x0F;
-                                DDSPF.GBitMask = 0x00;
-                                DDSPF.BBitMask = 0x00;
-                                DDSPF.ABitMask = 0xF0;
-                                break;
-
-                            case Util.TextureFormat.DXT1:
-                                DDSPF.flags = DDS.DDS_FOURCC;
-                                DDSPF.fourCC = BitConverter.ToUInt32(Encoding.ASCII.GetBytes("DXT1"), 0); 
-                                break;
-
-                            case Util.TextureFormat.DXT3:
-                                DDSPF.flags = DDS.DDS_FOURCC;
-                                DDSPF.fourCC = BitConverter.ToUInt32(Encoding.ASCII.GetBytes("DXT3"), 0);
-                                break;
-
-                            case Util.TextureFormat.DXT5:
-                                DDSPF.flags = DDS.DDS_FOURCC;
-                                DDSPF.fourCC = BitConverter.ToUInt32(Encoding.ASCII.GetBytes("DXT5"), 0);
-                                break;
-
-                            case Util.TextureFormat.V8U8:
-                                DDSPF.flags = DDS.DDS_RGB; // DDPF_RGB
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0x00FF00;
-                                DDSPF.GBitMask = 0x00000000;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x0000FF;
-                                break;
-
-                            case Util.TextureFormat.Q8W8V8U8:
-                            case Util.TextureFormat.X8L8V8U8:
-                                DDSPF.flags = DDS.DDS_RGB; // DDPF_RGB
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFF000000;
-                                DDSPF.GBitMask = 0x00FF0000;
-                                DDSPF.BBitMask = 0x0000FF00;
-                                DDSPF.ABitMask = 0x000000FF;
-                                break;
-
-                            case Util.TextureFormat.CxV8U8:
-                                DDSPF.flags = DDS.DDS_RGB; // DDPF_RGB
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0xFF00;
-                                DDSPF.GBitMask = 0x0000;
-                                DDSPF.BBitMask = 0x0000;
-                                DDSPF.ABitMask = 0x00FF;
-                                break;
-
-                            case Util.TextureFormat.DF16:
-                            case Util.TextureFormat.D16:
-                            case Util.TextureFormat.R16F:
-                            case Util.TextureFormat.L16:
-                                DDSPF.flags = 0x20000; // DDPF_LUMINANCE
-                                DDSPF.RGBBitCount = 16;
-                                DDSPF.RBitMask = 0xFFFF;
-                                DDSPF.GBitMask = 0x0000;
-                                DDSPF.BBitMask = 0x0000;
-                                DDSPF.ABitMask = 0x0000;
-                                break;
-
-                            case Util.TextureFormat.G16R16F:
-                            case Util.TextureFormat.G16R16:
-                                DDSPF.flags = DDS.DDS_RGB; // DDPF_RGB
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFFFF0000;
-                                DDSPF.GBitMask = 0x0000FFFF;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.D32:
-                            case Util.TextureFormat.R32F:
-                                DDSPF.flags = 0x20000; // DDPF_LUMINANCE
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFFFFFFFF;
-                                DDSPF.GBitMask = 0x00000000;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.D24S8:
-                                DDSPF.flags = 0x20000; // DDPF_LUMINANCE
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFFFFFF00;
-                                DDSPF.GBitMask = 0x00000000;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x000000FF;
-                                break;
-
-                            case Util.TextureFormat.D24X8:
-                                DDSPF.flags = 0x20000; // DDPF_LUMINANCE
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFFFFFF00;
-                                DDSPF.GBitMask = 0x00000000;
-                                DDSPF.BBitMask = 0x00000000;
-                                DDSPF.ABitMask = 0x00000000;
-                                break;
-
-                            case Util.TextureFormat.DF24:
-                                DDSPF.flags = 0x20000; // DDPF_LUMINANCE
-                                DDSPF.RGBBitCount = 24;
-                                DDSPF.RBitMask = 0xFFFFFF;
-                                DDSPF.GBitMask = 0x0000;
-                                DDSPF.BBitMask = 0x0000;
-                                DDSPF.ABitMask = 0x0000;
-                                break;
-
-                            case Util.TextureFormat.D24FS8:
-                                DDSPF.flags = 0x20000; // DDPF_LUMINANCE
-                                DDSPF.RGBBitCount = 32;
-                                DDSPF.RBitMask = 0xFFFFFF00;
-                                DDSPF.GBitMask = 0x00000000;
-                                break;
-                            default:
-                                Console.WriteLine("Non Implemented TextureFormat");
-                                break;
-
-                        }
-                        */
                     }
                     //default if unrecognized, folder/type/name/partcount 
                     else

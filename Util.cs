@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.SqlServer.Server;
+using System;
 using System.IO;
 using System.Text;
 
@@ -166,8 +167,14 @@ namespace DumpRP6
             // Builder Information
             BuilderInformation = 255
         }
+
+
+        //I was wrong, Don't use this
         //CRenderer::SortDisplayMode
         //or basically just search memory for R8G8B8 in engine dll
+
+        //the actual location of this data is in imagelib
+        //IL_FormatFromStr does the trick
         public enum TextureFormat : uint
         {
             R8G8B8 = 0,
@@ -188,94 +195,297 @@ namespace DumpRP6
             A8L8 = 0xf,
             A4L4 = 0x10,
             DXT1 = 0x11,
-            DXT2 = 0x12,
-            DXT3 = 0x13,
-            DXT4 = 0x14,
-            DXT5 = 0x15,
-            V8U8 = 0x16,
-            L6V5U5 = 0x17,
-            X8L8V8U8 = 0x18,
-            Q8W8V8U8 = 0x19,
-            CxV8U8 = 0x1a,
-            L16 = 0x1b,
-            G16R16 = 0x1c,
-            A16B16G16R16 = 0x1d,
-            R16F = 0x1e,
-            G16R16F = 0x1f,
-            A16B16G16R16F = 0x20,
-            R32F = 0x21,
-            G32R32F = 0x22,
-            A32B32G32R32F = 0x23,
-            D16 = 0x24,
-            D24S8 = 0x25,
-            D24X8 = 0x26,
-            D32 = 0x27,
-            DF16 = 0x28,
-            DF24 = 0x29,
-            D24FS8 = 0x2a,
-            XENON_HDR_16FF = 0x2b,
-            XENON_HDR_16F = 0x2c,
-            XENON_HDR_16 = 0x2d,
-            XENON_HDR_8 = 0x2e,
-            DXT3A = 0x2f,
-            DXT5A = 0x30,
-            DXN = 0x31,
-            CTX1 = 0x32,
-            DXT3A_1111 = 0x33,
-            XENON_HDR_10 = 0x34,
-            XENON_HDR_11 = 0x35,
-            A2R10G10B10 = 0x36,
-            R11G11B10 = 0x37,
-            NV_NULL = 0x38,
-            A16B16G16R16F_EXPAND = 0x39,
-            A2B10G10R10F_EDRAM = 0x3a,
-            A16L16 = 0x3b,
-            G16R16_EDRAM = 0x3c,
-            A16B16G16R16_EDRAM = 0x3d,
-            A8R8G8B8_GAMMA = 0x3e,
-            A8R8G8B8_GAMMA_AS16 = 0x3f,
-            A2R10G10B10_GAMMA = 0x40,
-            A2R10G10B10_GAMMA_AS16 = 0x41,
-            R32G32B32A32_UINT = 0x44,
-            R32G32B32A32_SINT = 0x45,
-            R16G16B16A16_UINT = 0x46,
-            R16G16B16A16_SNORM = 0x47,
-            R16G16B16A16_SINT = 0x48,
-            R32G32_UINT = 0x49,
-            R32G32_SINT = 0x4a,
-            R10G10B10A2_UNORM = 0x4b,
-            R10G10B10A2_UINT = 0x4c,
-            R8G8B8A8_UINT = 0x4d,
-            R8G8B8A8_SNORM = 0x4e,
-            R8G8B8A8_SINT = 0x4f,
-            R16G16_UINT = 0x50,
-            R16G16_SNORM = 0x51,
-            R16G16_SINT = 0x52,
-            R32_UINT = 0x53,
-            R32_SINT = 0x54,
-            R8G8_UNORM = 0x55,
-            R8G8_UINT = 0x56,
-            R8G8_SNORM = 0x57,
-            R8G8_SINT = 0x58,
-            R16_UNORM = 0x59,
-            R16_UINT = 0x5a,
-            R16_SNORM = 0x5b,
-            R16_SINT = 0x5c,
-            R8_UNORM = 0x5d,
-            R8_UINT = 0x5e,
-            R8_SNORM = 0x5f,
-            R8_SINT = 0x60,
-            BC5_SNORM = 0x61,
-            R32_FLOAT_X8X24_TYPELESS = 0x62,
-            X32_TYPELESS_G8X24_UINT = 0x63,
-            X24_TYPELESS_G8_UINT = 0x64,
-            D32_FLOAT_S8X24_UINT = 0x65,
-            BC6H_UF16 = 0x66,
-            BC6H_SF16 = 0x67,
-            BC7_UNORM = 0x68,
-            D16S8 = 0x69,
-            UNKNOWN = 0xff,
+            DXT3 = 0x12,
+            DXT5 = 0x13,
+            V8U8 = 0x14,
+            L6V5U5 = 0x15,
+            X8L8V8U8 = 0x16,
+            Q8W8V8U8 = 0x17,
+            CxV8U8 = 0x18,
+            L16 = 0x19,
+            G16R16 = 0x1a,
+            A16B16G16R16 = 0x1b,
+            R16F = 0x1c,
+            G16R16F = 0x1d,
+            A16B16G16R16F = 0x1e,
+            R32F = 0x1f,
+            G32R32F = 0x20,
+            A32B32G32R32F = 0x21,
+            D16 = 0x22,
+            D24S8 = 0x23,
+            D16S8 = 0x61,
+            D24X8 = 0x24,
+            D32 = 0x25,
+            DF16 = 0x26,
+            DF24 = 0x27,
+            D24FS8 = 0x28,
+            D32FS8 = 0x5d,
+            XENON_HDR_16FF = 0x29,
+            XENON_HDR_16F = 0x2a,
+            XENON_HDR_16 = 0x2b,
+            XENON_HDR_8 = 0x2c,
+            DXT3A = 0x2d,
+            DXT5A = 0x2e,
+            DXN = 0x2f,
+            CTX1 = 0x30,
+            DXT3A_1111 = 0x31,
+            XENON_HDR_10 = 0x32,
+            XENON_HDR_11 = 0x33,
+            A2R10G10B10 = 0x34,
+            R11G11B10 = 0x35,
+            A8R8G8B8_GAMMA = 0x36,
+            A8R8G8B8_GAMMA_AS16 = 0x37,
+            A2R10G10B10_GAMMA = 0x38,
+            A2R10G10B10_GAMMA_AS16 = 0x39,
+            B32G32R32F = 0x3a,
+            R11G11B10F = 0x3b,
+            UNKNOWN = 0xffff,
+            R32G32B32A32_UINT = 0x3c,
+            R32G32B32A32_SINT = 0x3d,
+            R16G16B16A16_SNORM = 0x3f,
+            R16G16B16A16_UINT = 0x3e,
+            R16G16B16A16_SINT = 0x40,
+            R32G32_UINT = 0x41,
+            R32G32_SINT = 0x42,
+            R10G10B10A2_UNORM = 0x43,
+            R10G10B10A2_UINT = 0x44,
+            R8G8B8A8_SNORM = 0x46,
+            R8G8B8A8_UINT = 0x45,
+            R8G8B8A8_SINT = 0x47,
+            R16G16_SNORM = 0x49,
+            R16G16_UINT = 0x48,
+            R16G16_SINT = 0x4a,
+            R32_UINT = 0x4b,
+            R32_SINT = 0x4c,
+            R8G8_UNORM = 0x4d,
+            R8G8_SNORM = 0x4f,
+            R8G8_UINT = 0x4e,
+            R8G8_SINT = 0x50,
+            R16_UNORM = 0x51,
+            R16_SNORM = 0x53,
+            R16_UINT = 0x52,
+            R16_SINT = 0x54,
+            R8_UNORM = 0x55,
+            R8_UINT = 0x56,
+            R8_SNORM = 0x57,
+            R8_SINT = 0x58,
+            BC5_SNORM = 0x59,
+            R32_FLOAT_X8X24_TYPELESS = 0x5a,
+            X32_TYPELESS_G8X24_UINT = 0x5b,
+            X24_TYPELESS_G8_UINT = 0x5c,
+            BC6H_UF16 = 0x5e,
+            BC6H_SF16 = 0x5f,
+            BC7_UNORM = 0x60
         }
+
+        //Need to Finish
+        public static DDS.DXGI_FORMAT GetDXGIFormat(TextureFormat textureFormat)
+        {
+            switch (textureFormat)
+            {
+                //Tested Functional
+                case TextureFormat.A1R5G5B5:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_B5G5R5A1_UNORM;
+                case TextureFormat.A8B8G8R8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM;
+                case TextureFormat.A8R8G8B8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM;
+                case TextureFormat.R5G6B5:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_B5G6R5_UNORM;
+
+                //compressed formats
+                case TextureFormat.DXT1:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM;
+                case TextureFormat.DXT3:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM;   
+                case TextureFormat.DXT5:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM;
+
+                //Untested
+                //Compressed
+                case TextureFormat.BC5_SNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_BC5_SNORM;
+                case TextureFormat.BC6H_UF16:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_BC6H_UF16;
+                case TextureFormat.BC6H_SF16:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_BC6H_SF16;
+                case TextureFormat.BC7_UNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM;
+
+                //grouped bc they had the same bit masks, not really important
+                case TextureFormat.D16:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_D16_UNORM;
+                case TextureFormat.DF16:
+                case TextureFormat.R16F:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16_FLOAT;
+                case TextureFormat.L16:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16_UNORM;
+
+                case TextureFormat.X8R8G8B8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_B8G8R8X8_UNORM;
+
+                case TextureFormat.B8G8R8X8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_B8G8R8X8_UNORM;
+
+                case TextureFormat.B8G8R8A8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM;
+
+                case TextureFormat.X1R5G5B5:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_B5G5R5A1_UNORM;
+
+                case TextureFormat.A8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_A8_UNORM;
+
+                case TextureFormat.L8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8_UNORM;
+
+                case TextureFormat.A8L8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8_UNORM;
+
+                case TextureFormat.V8U8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8_SNORM;
+
+                case TextureFormat.G16R16:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16_UNORM;
+
+                case TextureFormat.A16B16G16R16:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_UNORM;
+
+                case TextureFormat.G16R16F:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16_FLOAT;
+
+                case TextureFormat.A16B16G16R16F:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+                case TextureFormat.R32F:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32_FLOAT;
+
+                case TextureFormat.G32R32F:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32G32_FLOAT;
+
+                case TextureFormat.A32B32G32R32F:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+                case TextureFormat.D24S8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+                case TextureFormat.D24X8:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
+                case TextureFormat.D32:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT;
+
+                case TextureFormat.A2R10G10B10:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R10G10B10A2_UNORM;
+
+                case TextureFormat.R11G11B10:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R11G11B10_FLOAT;
+
+                case TextureFormat.R32G32B32A32_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_UINT;
+
+                case TextureFormat.R32G32B32A32_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_SINT;
+
+                case TextureFormat.R16G16B16A16_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_UINT;
+
+                case TextureFormat.R16G16B16A16_SNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_SNORM;
+
+                case TextureFormat.R16G16B16A16_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_SINT;
+
+                case TextureFormat.R32G32_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32G32_UINT;
+
+                case TextureFormat.R32G32_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32G32_SINT;
+
+                case TextureFormat.R10G10B10A2_UNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R10G10B10A2_UNORM;
+
+                case TextureFormat.R10G10B10A2_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R10G10B10A2_UINT;
+
+                case TextureFormat.R8G8B8A8_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UINT;
+
+                case TextureFormat.R8G8B8A8_SNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_SNORM;
+
+                case TextureFormat.R8G8B8A8_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_SINT;
+
+                case TextureFormat.R16G16_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16_UINT;
+
+                case TextureFormat.R16G16_SNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16_SNORM;
+
+                case TextureFormat.R16G16_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16G16_SINT;
+
+                case TextureFormat.R32_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32_UINT;
+
+                case TextureFormat.R32_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32_SINT;
+
+                case TextureFormat.R8G8_UNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8_UNORM;
+
+                case TextureFormat.R8G8_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8_UINT;
+
+                case TextureFormat.R8G8_SNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8_SNORM;
+
+                case TextureFormat.R8G8_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8G8_SINT;
+
+                case TextureFormat.R16_UNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16_UNORM;
+
+                case TextureFormat.R16_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16_UINT;
+
+                case TextureFormat.R16_SNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16_SNORM;
+
+                case TextureFormat.R16_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R16_SINT;
+
+                case TextureFormat.R8_UNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8_UNORM;
+
+                case TextureFormat.R8_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8_UINT;
+
+                case TextureFormat.R8_SNORM:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8_SNORM;
+
+                case TextureFormat.R8_SINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R8_SINT;
+
+                case TextureFormat.R32_FLOAT_X8X24_TYPELESS:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+
+                case TextureFormat.X32_TYPELESS_G8X24_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+
+                case TextureFormat.X24_TYPELESS_G8_UINT:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+
+                //not a supported format, accidently grabbed a display mode
+                //case TextureFormat.D32_FLOAT_S8X24_UINT:
+                //    return DDS.DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+                    
+                default:
+                    return DDS.DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+            }
+        }
+
         public static StringBuilder FormatFX(string[] raw)
         {
             //remove everything before the ACK character as it's not intended
