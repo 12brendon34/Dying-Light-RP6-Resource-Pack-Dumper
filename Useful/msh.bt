@@ -1,0 +1,67 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: .msh
+//   Authors: Brendon
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 4D 53 48, MSH
+//   History: 
+//------------------------------------------------
+
+LittleEndian();
+
+//float [3][4]; 
+struct MTX34 {
+    float m00, m01, m02, m03;
+    float m10, m11, m12, m13;
+    float m20, m21, m22, m23;
+};
+
+
+struct vec3 {
+    float x;
+    float y;
+    float z;
+};
+
+struct AABB {
+    vec3 origin;
+    vec3 span;
+};
+
+
+struct {
+	uint id;
+    uint ver;
+    uint chunk_size;
+    uint data_size;
+
+    if (id == 0x500) {
+        char Material[data_size];
+    }
+    else if (id == 0x700) {
+        char Surface[data_size];
+    }
+    else if (id == 3) {
+
+        struct {
+            uint type; //enum
+            char name[64];
+            ushort parent;
+            ushort children;
+            uint num_lods;
+            MTX34 _local;
+            MTX34 bone_tm;
+            AABB bounds;
+            uint flags;
+            char unused[8];
+        } msh_node;
+
+    }
+    else {
+        char data[data_size];
+    }
+} Chunk[15] <optimize=false>; //read untill the eof, I just picked 15 bc

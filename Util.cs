@@ -278,7 +278,6 @@ namespace DumpRP6
             BC7_UNORM = 0x60
         }
 
-        //Need to Finish
         public static DDS.DXGI_FORMAT GetDXGIFormat(TextureFormat textureFormat)
         {
             switch (textureFormat)
