@@ -268,6 +268,7 @@ namespace DumpRP6
                             }
                         }
                     }
+
                     else if (filetype == (int)Util.ResourceType.Texture)
                     {
                         string outputDir = Path.Combine(Path.GetFileNameWithoutExtension(inputfile), type);
@@ -354,6 +355,8 @@ namespace DumpRP6
 
                         uint DDS_HEADER_SIZE = 124;
                         uint DDSCAPS_TEXTURE = 0x1000;
+                        uint DDSCAPS_MIPMAP = 0x00400000;
+                        uint DDSCAPS_COMPLEX = 0x00000008;
 
                         //Get PixelFormat
                         DDS_PIXELFORMAT dDS_PIXELFORMAT = DDS.GetPixelFormat(m_TextureHeader.Format);
@@ -365,10 +368,10 @@ namespace DumpRP6
                             width = m_TextureHeader.Width,
                             pitchOrLinearSize = PitchOrLinearSize,
                             depth = m_TextureHeader.Depth,
-                            mipMapCount = 1, //mipMapCount = m_TextureHeader.MipMapCount, //haven't got mipmaps yet
+                            mipMapCount = m_TextureHeader.MipMapCount,
                             reserved1 = new uint[11],
                             ddspf = dDS_PIXELFORMAT,
-                            caps = DDSCAPS_TEXTURE,
+                            caps = DDSCAPS_TEXTURE | (m_TextureHeader.MipMapCount > 1 ? DDSCAPS_MIPMAP | DDSCAPS_COMPLEX : 0),
                             caps2 = 0,
                             caps3 = 0,
                             caps4 = 0,
